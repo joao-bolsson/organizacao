@@ -1,0 +1,5 @@
+ Address    Code        Basic                     Source
+
+0x00400000  0x012a4020  add $8,$9,$10             add  $t0, $t1, $t2
+0x00400004  0x214900ea  addi $9,$10,0x000000ea    addi $t1, $t2, 234
+0x00400008  0x08100000  j 0x00400000              j l0
