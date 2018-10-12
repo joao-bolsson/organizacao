@@ -1,3 +1,5 @@
+main.s - Dissasembler
+
 teste.asm -- arquivo com 3 instruções: R, I e J. Usado como exemplo em sala de aula
 teste.bim -- arquivo binário com as instruções de teste.asm
 teste.txt -- exemplo de saída do dissasembler.
