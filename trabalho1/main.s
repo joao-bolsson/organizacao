@@ -69,6 +69,13 @@ fim_programa:
             syscall
 ###############################################################################
 
+
+#******************************************************************************
+#
+#			OPERAÇÕES COM O ARQUIVO E PALAVRAS
+#
+#******************************************************************************
+
 abra_arquivo_binario:
 # Faz a abertura do arquivo de entrada.
 # Argumentos
@@ -121,6 +128,36 @@ leia_palavra_arquivo:
             jr    $ra         # retornamos ao procedimento chamador
 ###############################################################################
 
+isola_opcode:
+# Isola 6 bits mais significativos da palavra: opcode: [31, 26]
+# Argumento:
+#		$a0: instrução dada
+#
+# Retorno:
+# 	$v0: os 6 bits do opcode da instrução dada
+#
+# Funcionamento:
+#
+#	001000 01010010010000000011101010  (instrução)
+#	111111 00000000000000000000000000  (máscara)
+#
+#	aplica and entre a instrução e a máscara
+#
+#	001000 00000000000000000000000000 (zerou todos os bits que não queremos)
+#
+#	shift para a direita de 26 bits
+#
+# 	00000000000000000000000000 001000 (opcode)
+#------------------------------------------------------------------------------
+# prólogo
+# corpo do programa
+	lw $t1, maskOPCODE 	# armazena em $t1 a másca para isolar os bits do opcode
+	and $t2, $a0, $t1	# faz uma operação and com a instrução e a máscara
+	srl $t2, $t2, 26	# deslocamento de 26 bits para a direita, isso dará o opcode em 32 bits
+	lw $v0, 0($t2) 		# retorna em $v0 o opcode
+# epílogo
+	jr $ra 			# retorna para o precedimento chamador
+
 processa_palavra_lida:
 # Este procedimento imprime em binário uma palavra lida do arquivo de entrada binário
 # Argumento
@@ -137,9 +174,15 @@ processa_palavra_lida:
             li    $a0,'\n' # caracter nova linha
             li    $v0, 11
             syscall
-# epílogo       
-            jr    $ra # retorna ao procedimento chamador      
-###############################################################################                           
+# epílogo
+            jr    $ra # retorna ao procedimento chamador
+###############################################################################
+
+#******************************************************************************
+#
+#			TRATAMENTO DE ERROS
+#
+#******************************************************************************
 
 trata_erro_leitura_arquivo:
 # Este procedimento imprime uma mensagem de erro quando houver um erro de
@@ -156,7 +199,7 @@ trata_erro_leitura_arquivo:
             syscall
 # epílogo
             jr    $ra # retornamos ao procedimento chamador
-###############################################################################                                                                       
+###############################################################################
 
 trata_erro_aquivo_nao_aberto:
 # Este procedimento imprime uma mensagem de erro quando o arquivo não pode ser aberto
@@ -189,9 +232,20 @@ trata_fim_arquivo_binario:
         syscall
 # epílogo
         jr  $ra # retornamos ao procedimento chamador
-###############################################################################     
+###############################################################################
 
 .data
+
+# ----------------------------------------
+# 	MASCARAS PARA ISOLAR BITS
+# ----------------------------------------
+maskOPCODE:
+.word 		0xFC000000
+
+# ----------------------------------------
+# 		MENSAGENS
+# ----------------------------------------
+
 arquivoEntrada: 
 .asciiz           "/home/joao/organizacao/trabalho1/teste.bin"
 mensagemErroAberturaArquivo: 
