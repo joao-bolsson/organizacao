@@ -44,8 +44,11 @@ verifica_se_erro:
             bne   $t1, $zero, erro_leitura_arquivo # erro de leitura se o número de bytes é menor que 4
             # uma palavra com 4 bytes foi lida do arquivo de entrada. Fazemos o seu processamento.
 palavra_lida_com_sucesso:
+	    move  $t1, $v1 # preserva a palavra lida
             move  $a0, $v1 # carregamos a palavra lida
             jal   processa_palavra_lida # processamos a palavra lida do arquivo de entrada
+            move  $a0, $t1 # passa a palavra lida para isolar o opcode
+            jal   isola_opcode
             j     leitura_palavra_arquivo_binario # fazemos a leitura da próxima palavra do aquivo de entrada
 fim_arquivo_binario:
             jal   trata_fim_arquivo_binario
@@ -128,6 +131,26 @@ leia_palavra_arquivo:
             jr    $ra         # retornamos ao procedimento chamador
 ###############################################################################
 
+processa_palavra_lida:
+# Este procedimento imprime em binário uma palavra lida do arquivo de entrada binário
+# Argumento
+#           $a0 : palavra que será impressa
+#
+# Sem valores de retorno
+#------------------------------------------------------------------------------
+# prólogo
+# corpo do programa
+            # imprime a palavra lida. Usamos o serviço 35
+            li    $v0, 35
+            syscall
+            # imprimimos uma nova  linha com o serviço 11
+            li    $a0,'\n' # caracter nova linha
+            li    $v0, 11
+            syscall
+# epílogo
+            jr    $ra # retorna ao procedimento chamador
+###############################################################################
+
 isola_opcode:
 # Isola 6 bits mais significativos da palavra: opcode: [31, 26]
 # Argumento:
@@ -151,31 +174,20 @@ isola_opcode:
 #------------------------------------------------------------------------------
 # prólogo
 # corpo do programa
-	lw $t1, maskOPCODE 	# armazena em $t1 a másca para isolar os bits do opcode
+	lw  $t1, maskOPCODE 	# armazena em $t1 a másca para isolar os bits do opcode
 	and $t2, $a0, $t1	# faz uma operação and com a instrução e a máscara
 	srl $t2, $t2, 26	# deslocamento de 26 bits para a direita, isso dará o opcode em 32 bits
-	lw $v0, 0($t2) 		# retorna em $v0 o opcode
+	
+	move $a0, $t2 		# coloca o opcode como argumento para a syscall
+	li $v0, 35		# imprime o opcode com o serviço 35
+	syscall
+	li $a0, '\n'
+	li $v0, 11
+	syscall 		# imprime uma nova linha
+	# retorno
+	move  $v0, $t2 		# retorna em $v0 o opcode
 # epílogo
-	jr $ra 			# retorna para o precedimento chamador
-
-processa_palavra_lida:
-# Este procedimento imprime em binário uma palavra lida do arquivo de entrada binário
-# Argumento
-#           $a0 : palavra que será impressa
-#
-# Sem valores de retorno
-#------------------------------------------------------------------------------
-# prólogo
-# corpo do programa
-            # imprime a palavra lida. Usamos o serviço 35
-            li    $v0, 35
-            syscall
-            # imprimimos uma nova  linha com o serviço 11
-            li    $a0,'\n' # caracter nova linha
-            li    $v0, 11
-            syscall
-# epílogo
-            jr    $ra # retorna ao procedimento chamador
+	jr  $ra 		# retorna para o precedimento chamador
 ###############################################################################
 
 #******************************************************************************
