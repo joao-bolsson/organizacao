@@ -84,10 +84,7 @@ palavra_lida_com_sucesso:
 	    print(txtInstrucao, $v1)
             # leitura do opcode
             move  $a0, $v1 		# restaura a palavra lida em $a0
-            lw	  $a1, maskOPCODE
-            li 	  $a2, 26
-            jal   isola_bits
-            print(txtOPCODE, $v0)	# imprime o opcode
+            jal	  processa_instrucao
             print(txtSeparador)		# imprime o separador
             j     leitura_palavra_arquivo_binario # fazemos a leitura da próxima palavra do aquivo de entrada
 fim_arquivo_binario:
@@ -201,6 +198,40 @@ isola_bits:
 	jr 	$ra		# retornarmos ao caller
 ###############################################################################
 
+processa_instrucao:
+# Procedimento para imprimir uma instrução binária em sua correspondente em linguagem Assembly
+# Argumentos:
+#	$a0: instrução
+# Sem valor de retorno
+#------------------------------------------------------------------------------
+# prólogo
+# corpo do programa
+	# vamos isolar o opcode
+	lw 	$a1, maskOPCODE		# passa a mascara para isolar os bits do opcode
+	li	$a2, 26			# vai precisar deslocar 26 bits para a direita
+	move	$s0, $ra		# preserva o valor de $ra 
+	jal 	isola_bits
+	move 	$ra, $s0		# restaura o valor de $ra
+	print(txtOPCODE, $v0)		# imprimimos o opcode
+	beq 	$v0, 0, processa_tipoR
+	j	fim_switch
+# epílogo
+###############################################################################
+
+processa_tipoR:
+# Procedimento para processar instrução do tipo R (com opcode igual a 0)
+	# vamos isolar o campo funct
+	lw	$a1, maskFUNCT		# passamos a mascara para isolar os bits da instrucao em $a0
+	li	$a2, 0			# passamos o número de bits deslocados para a direita
+	move	$s0, $ra		# preservamos o ra em $s0 para poder retornar ao procedimento chamados de processa_instrucao
+	jal	isola_bits		# jal escreve em $ra
+	move	$ra, $s0		# restaura o valor de $ra
+	print(txtFUNCT, $v0)			# imprimimos o campo funct
+
+fim_switch:
+	jr 	$ra	# retornamos ao procedimento chamador de processa_instrucao
+
+
 #******************************************************************************
 #
 #			TRATAMENTO DE ERROS
@@ -278,6 +309,8 @@ txtInstrucao:
 .asciiz 	  "Instrução: "
 txtOPCODE:
 .asciiz		  "Opcode:    "
+txtFUNCT:
+.asciiz		  "FUNCT:     "
 txtSeparador:
 .asciiz	  	  "-------------------------------------------------\n"
 .align 2
