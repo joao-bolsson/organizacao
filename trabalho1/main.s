@@ -17,9 +17,15 @@
 # Parâmetros:
 #	%label: endereço contendo a string a ser impressa
 .macro  print(%label)
+	# preservamos os valores de $a0 e $v0
+	move	$t0, $v0
+	move	$t1, $a0
 	la 	$a0, %label
 	li 	$v0, 4
 	syscall
+	# recuperamos os valores de $v0 e $a0
+	move	$v0, $t0
+	move	$a0, $t1
 .end_macro
 
 # Imprime uma string seguida por um valor binário
@@ -28,12 +34,18 @@
 #	%value: valor inteiro
 .macro 	print(%label, %value)
 	print(%label)
+	# preservamos os valores de $a0 e $v0
+	move 	$t0, $a0
+	move	$t1, $v0
 	move 	$a0, %value
 	li 	$v0, 35
 	syscall
 	li	$a0, '\n'
 	li	$v0, 11
 	syscall 
+	# recuperamos os valores de $a0 e $v0
+	move	$a0, $t0
+	move	$v0, $t1
 .end_macro
 
 .globl      main
