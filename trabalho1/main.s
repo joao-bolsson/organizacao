@@ -76,7 +76,7 @@ palavra_lida_com_sucesso:
             li 	  $a2, 26
             jal   isola_bits
             print(txtOPCODE, $v0)	# imprime o opcode
-            print(txtSeparador)
+            print(txtSeparador)		# imprime o separador
             j     leitura_palavra_arquivo_binario # fazemos a leitura da próxima palavra do aquivo de entrada
 fim_arquivo_binario:
             jal   trata_fim_arquivo_binario
@@ -239,6 +239,16 @@ trata_fim_arquivo_binario:
 # ----------------------------------------
 maskOPCODE:
 .word 		0xFC000000
+maskRS:
+.word		0x3E00000
+maskRT:
+.word		0x1F0000
+maskRD:
+.word		0xF800
+maskSHAMT:
+.word		0x7C0
+maskFUNCT:
+.word		0x3F
 
 # ----------------------------------------
 # 		MENSAGENS
