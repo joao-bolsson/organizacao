@@ -12,6 +12,30 @@
 # Assembler: MARS 4.5
 #********************************************************************************************
 .text
+
+# Imprime uma string que está em memória
+# Parâmetros:
+#	%label: endereço contendo a string a ser impressa
+.macro  print(%label)
+	la 	$a0, %label
+	li 	$v0, 4
+	syscall
+.end_macro
+
+# Imprime uma string seguida por um valor binário
+# Parâmetros:
+#	%label: endereço contendo a string a ser impressa
+#	%value: valor inteiro
+.macro 	print(%label, %value)
+	print(%label)
+	move 	$a0, %value
+	li 	$v0, 35
+	syscall
+	li	$a0, '\n'
+	li	$v0, 11
+	syscall 
+.end_macro
+
 .globl      main
 main:    
 # prólogo    
@@ -45,15 +69,14 @@ verifica_se_erro:
             # uma palavra com 4 bytes foi lida do arquivo de entrada. Fazemos o seu processamento.
 palavra_lida_com_sucesso:
 	    # vai processar cada linha do arquivo (instrução) e imprimir um separador no final
-	    move  $t1, $v1 		# preserva a palavra lida
-            move  $a0, $v1 		# carregamos a palavra lida
-            jal   processa_palavra_lida # processamos a palavra lida do arquivo de entrada
-            move  $a0, $t1 		# passa a palavra lida para isolar o opcode
-            jal   isola_opcode
-            la 	  $a0, txtSeparador	# imprime o separador com o serviço 4
-            li 	  $v0, 4
-            syscall
-            # imprime um separador
+	    print(txtInstrucao, $v1)
+            # leitura do opcode
+            move  $a0, $v1 		# restaura a palavra lida em $a0
+            lw	  $a1, maskOPCODE
+            li 	  $a2, 26
+            jal   isola_bits
+            print(txtOPCODE, $v0)	# imprime o opcode
+            print(txtSeparador)
             j     leitura_palavra_arquivo_binario # fazemos a leitura da próxima palavra do aquivo de entrada
 fim_arquivo_binario:
             jal   trata_fim_arquivo_binario
@@ -136,40 +159,16 @@ leia_palavra_arquivo:
             jr    $ra         # retornamos ao procedimento chamador
 ###############################################################################
 
-processa_palavra_lida:
-# Este procedimento imprime em binário uma palavra lida do arquivo de entrada binário
-# Argumento
-#           $a0 : palavra que será impressa
-#
-# Sem valores de retorno
-#------------------------------------------------------------------------------
-# prólogo
-# corpo do programa
-	    # imprime a instrução, vai imprimir no formato 'Intrução: xxx (32 bits)'
-	    move	$t0, $a0 	# preserva a instrução passada em $t0
-	    la		$a0, txtInstrucao
-	    li		$v0, 4
-	    syscall
-	    move	$a0, $t0	# restaura a instrução para passar para syscall para ser impressa
-            li		$v0, 35
-            syscall
-            # imprimimos uma nova  linha com o serviço 11
-            li		$a0,'\n' 	# caracter nova linha
-            li		$v0, 11
-            syscall
-# epílogo
-            jr		$ra 		# retorna ao procedimento chamador
-###############################################################################
-
-isola_opcode:
-# Isola 6 bits mais significativos da palavra: opcode: [31, 26]
-# Argumento:
-#		$a0: instrução dada
-#
+isola_bits:
+# Isola bits de acordo com a mascara passada (32 bits o target e 32 bits a mascara)
+# Parâmetros:
+#	$a0: palavra com os bits a serem isolados (target)
+#	$a1: máscara para isolar
+#	$a2: número de bits a serem deslocados para a direita
 # Retorno:
-# 	$v0: os 6 bits do opcode da instrução dada
+#	$v0: bits isolados em 32 bits
 #
-# Funcionamento:
+# Exemplo de Funcionamento:
 #
 #	001000 01010010010000000011101010  (instrução)
 #	111111 00000000000000000000000000  (máscara)
@@ -184,24 +183,10 @@ isola_opcode:
 #------------------------------------------------------------------------------
 # prólogo
 # corpo do programa
-	lw	$t1, maskOPCODE # armazena em $t1 a másca para isolar os bits do opcode
-	and  	$t2, $a0, $t1	# faz uma operação and com a instrução e a máscara
-	srl  	$t2, $t2, 26	# deslocamento de 26 bits para a direita, isso dará o opcode em 32 bits
-
-	# impressão do opcode no console, vai imprimir no formato "Opcode: xxxxxx (32 bits)
-	la 	$a0, txtOPCODE  # Imprime 'Opcode' com o serviço 4
-	li 	$v0, 4
-	syscall
-	move 	$a0, $t2 	# coloca o opcode como argumento para a syscall
-	li   	$v0, 35		# imprime o opcode com o serviço 35
-	syscall
-	li   	$a0, '\n'
-	li   	$v0, 11
-	syscall 		# imprime uma nova linha
-	# retorno
-	move 	$v0, $t2 	# retorna em $v0 o opcode
+	and 	$v0, $a0, $a1	# aplica a mascara para zerar bits que nao queremos	
+	srlv 	$v0, $v0, $a2	# deslocamento de bits para a direita
 # epílogo
-	jr  	$ra 		# retorna para o precedimento chamador
+	jr 	$ra		# retornarmos ao caller
 ###############################################################################
 
 #******************************************************************************
@@ -218,11 +203,7 @@ trata_erro_leitura_arquivo:
 #------------------------------------------------------------------------------
 # prólogo
 # corpo do programa
-            # imprimimos a mensagem do endereço mensagemErroLeituraArquivo
-            # usando o serviço 4
-            la    $a0, mensagemErroLeituraArquivo
-            li    $v0, 4
-            syscall
+            print(mensagemErroLeituraArquivo)
 # epílogo
             jr    $ra # retornamos ao procedimento chamador
 ###############################################################################
@@ -234,11 +215,7 @@ trata_erro_aquivo_nao_aberto:
 #------------------------------------------------------------------------------
 # prólogo
 # corpo do programa
-            # imprimimos a mensagem do endereço mensagemErroAberturaArquivo
-            # usando o serviço 4
-            la    $a0, mensagemErroAberturaArquivo
-            li    $v0, 4
-            syscall
+	    print(mensagemErroAberturaArquivo)
 # epílogo
             jr    $ra # retornamos ao procedimento chamador
 ###############################################################################
@@ -251,17 +228,12 @@ trata_fim_arquivo_binario:
 #------------------------------------------------------------------------------
 # prólogo
 # corpo do programa
-        # imprimimos a mensagem do endereço mensagemFimLeituraArquivo 
-        # usando o serviço 4
-        la $a0, mensagemFimLeituraArquivo
-        li $v0, 4
-        syscall
+        print(mensagemFimLeituraArquivo)
 # epílogo
         jr  $ra # retornamos ao procedimento chamador
 ###############################################################################
 
 .data
-
 # ----------------------------------------
 # 	MASCARAS PARA ISOLAR BITS
 # ----------------------------------------
